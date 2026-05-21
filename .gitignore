@@ -1,0 +1,29 @@
+# Maven / Java
+target/
+*.class
+*.jar
+*.war
+.mvn/
+
+# Spring Boot logs
+*.log
+spring.log
+
+# Secrets (ne jamais mettre sur GitHub !)
+.env
+.mysqlenv
+
+# Node.js / React
+reactjs/node_modules/
+reactjs/build/
+reactjs/.cache/
+npm-debug.log*
+
+# IDE IntelliJ
+.idea/
+*.iml
+out/
+
+# OS
+.DS_Store
+Thumbs.db

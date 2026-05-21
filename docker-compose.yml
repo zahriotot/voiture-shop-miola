@@ -1,0 +1,52 @@
+version: "3.8"
+
+services:
+
+  # ─── Service 1 : MySQL ───────────────────────────────────────────
+  mysqldb:
+    container_name: mysqldb
+    image: mysql:8.0
+    restart: always
+    ports:
+      - "3307:3306"          # port 3307 sur la machine, 3306 dans le conteneur
+    environment:
+      MYSQL_DATABASE: miola
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db-data:/var/lib/mysql   # persistance des données
+    networks:
+      - spring-net
+    healthcheck:                 # attendre que MySQL soit vraiment prêt
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Service 2 : Spring Boot ─────────────────────────────────────
+  springboot-app:
+    container_name: springboot-app
+    image: springboot-app
+    build:
+      context: .               # cherche le Dockerfile dans le dossier courant
+    restart: always
+    ports:
+      - "9090:8082"            # port 9090 sur la machine, 8082 dans le conteneur
+    environment:
+      MYSQL_HOST: mysqldb      # nom du service MySQL ci-dessus
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_PORT: 3306
+    depends_on:
+      mysqldb:
+        condition: service_healthy   # attend que MySQL soit prêt
+    networks:
+      - spring-net
+
+# ─── Réseau partagé ──────────────────────────────────────────────
+networks:
+  spring-net:
+    driver: bridge
+
+# ─── Volume pour persister les données MySQL ─────────────────────
+volumes:
+  db-data:
