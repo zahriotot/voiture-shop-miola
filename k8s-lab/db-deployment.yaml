@@ -1,0 +1,69 @@
+# ═══════════════════════════════════════════════════════════════
+# PARTIE 1 : PersistentVolumeClaim (stockage persistant pour MySQL)
+# ═══════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: PersistentVolumeClaim         # Type de ressource : demande de stockage
+metadata:
+  name: mysql-pvc                   # Nom de notre demande de stockage
+spec:
+  accessModes:
+    - ReadWriteOnce                  # Un seul Pod peut lire/écrire à la fois
+  resources:
+    requests:
+      storage: 1Gi                  # 1 gigaoctet demandé
+
+---   # Séparateur de ressources YAML (permet plusieurs ressources dans 1 fichier)
+
+# ═══════════════════════════════════════════════════════════════
+# PARTIE 2 : Deployment MySQL
+# ═══════════════════════════════════════════════════════════════
+apiVersion: apps/v1
+kind: Deployment                    # Gère les Pods MySQL (auto-réparation, scaling)
+metadata:
+  name: mysql                        # Nom du déploiement
+  labels:
+    app: mysql                       # Étiquette pour identifier ce déploiement
+spec:
+  replicas: 1                        # 1 seule instance MySQL (pas de replication)
+  selector:
+    matchLabels:
+      app: mysql                     # Sélectionne les Pods avec ce label
+  template:                          # Plan de construction des Pods
+    metadata:
+      labels:
+        app: mysql                   # DOIT correspondre au selector.matchLabels
+    spec:
+      containers:
+        - name: mysql                 # Nom du conteneur
+          image: mysql:5.7            # Image Docker officielle MySQL version 5.7
+          ports:
+            - containerPort: 3306     # Port MySQL standard
+          env:                         # Variables d'environnement MySQL
+            - name: MYSQL_DATABASE
+              value: "miola"          # Crée la base "miola" au démarrage
+            - name: MYSQL_ROOT_PASSWORD
+              value: "Nifo23Lifo05"  # Mot de passe root (sera remplacé par Secret)
+          volumeMounts:                # Monte le volume dans le conteneur
+            - name: mysql-storage
+              mountPath: /var/lib/mysql # Dossier MySQL pour ses données
+      volumes:                         # Définit les volumes disponibles pour ce Pod
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: mysql-pvc     # Référence au PVC créé au-dessus
+
+---
+
+# ═══════════════════════════════════════════════════════════════
+# PARTIE 3 : Service MySQL (point d'accès stable pour Spring Boot)
+# ═══════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: Service                        # Expose MySQL à l'intérieur du cluster
+metadata:
+  name: mysql                        # NOM CRUCIAL : Spring Boot utilisera "mysql" comme host
+spec:
+  selector:
+    app: mysql                       # Cible les Pods avec le label app=mysql
+  ports:
+    - port: 3306                      # Port exposé par le Service
+      targetPort: 3306               # Port dans le conteneur MySQL
+  clusterIP: None                    # Service Headless : DNS direct vers le Pod

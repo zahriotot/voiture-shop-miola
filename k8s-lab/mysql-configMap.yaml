@@ -1,0 +1,7 @@
+apiVersion: v1               # Version API pour ConfigMap
+kind: ConfigMap             # Type de ressource : configuration non sensible
+metadata:
+  name: mysql-config         # Nom référencé dans app-deployment.yaml
+data:                         # Les données de configuration (clé: valeur)
+  host: mysql                # Nom DNS du Service MySQL dans le cluster
+  dbName: miola              # Nom de la base de données
